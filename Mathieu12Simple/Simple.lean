@@ -2,7 +2,7 @@ import Mathlib.Algebra.Module.Submodule.Basic
 import Mathlib.Algebra.Group.Conj
 import Mathlib.GroupTheory.SpecificGroups.Alternating
 
-import Fstproject.F4
+import Mathieu12Simple.F4
 
 
 open F4
