@@ -1,4 +1,3 @@
-import Mathlib.Init.Order.Defs
 import Mathlib.Algebra.Order.Monoid.Defs
 import Mathlib.Topology.Bornology.Basic
 
