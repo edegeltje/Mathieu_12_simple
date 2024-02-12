@@ -2,11 +2,8 @@ import Mathlib.Algebra.Order.Monoid.Defs
 import Mathlib.Topology.Bornology.Basic
 import Mathlib.Tactic
 
-universe u v
-
-variable {α:Type u} {β :Type v} [LinearOrderedCancelAddCommMonoid β]
 @[ext]
-class GDist (α : Type u) (β :Type v) [LinearOrderedCancelAddCommMonoid β] where
+class GDist (α : Type*) (β :Type*) [LinearOrderedAddCommMonoid β] where
   gdist : α → α → β
 
 open Set Filter Bornology
@@ -14,7 +11,7 @@ open scoped BigOperators Topology
 
 -- create all bounded sets?
 @[reducible]
-def Bornology.ofGDist (gdist : α → α → β) (gdist_comm : ∀ x y, gdist x y = gdist y x)
+def Bornology.ofGDist {α:Type*} {β :Type*} [LinearOrderedAddCommMonoid β] (gdist : α → α → β) (gdist_comm : ∀ x y, gdist x y = gdist y x)
     (gdist_triangle : ∀ x y z, gdist x z ≤ gdist x y + gdist y z) : Bornology α :=
   Bornology.ofBounded { s : Set α | ∃ C, ∀ ⦃x⦄, x ∈ s → ∀ ⦃y⦄, y ∈ s → gdist x y ≤ C }
     ⟨0,fun x hx y => hx.elim⟩
@@ -34,9 +31,7 @@ def Bornology.ofGDist (gdist : α → α → β) (gdist_comm : ∀ x y, gdist x 
           (add_le_add le_rfl (ht hy hz)).trans (le_max_right _ _))⟩)
     fun z => ⟨gdist z z, forall_eq.2 <| forall_eq.2 le_rfl⟩
 
-
-
-class GPseudoMetricSpace (α : Type u) (β:Type v) [LinearOrderedCancelAddCommMonoid β] extends GDist α β where
+class GPseudoMetricSpace (α : Type u) (β:Type v) [LinearOrderedAddCommMonoid β] extends GDist α β where
   gdist_self : ∀ x : α, gdist x x = 0
   gdist_comm : ∀ x y : α, gdist x y = gdist y x
   gdist_triangle : ∀ x y z : α, gdist x z ≤ gdist x y + gdist y z
@@ -44,7 +39,9 @@ class GPseudoMetricSpace (α : Type u) (β:Type v) [LinearOrderedCancelAddCommMo
   cobounded_sets : (Bornology.cobounded α).sets =
     { s | ∃ C : β, ∀ x ∈ sᶜ, ∀ y ∈ sᶜ, gdist x y ≤ C } := by intros; rfl
 
-private theorem gdist_nonneg' {x y : α} (gdist : α → α → β)
+variable {α:Type*} {β :Type*}
+
+private theorem gdist_nonneg' [LinearOrderedAddCommMonoid β] {x y : α} (gdist : α → α → β)
     (gdist_self : ∀ x : α, gdist x x = 0) (gdist_comm : ∀ x y : α, gdist x y = gdist y x)
     (gdist_triangle : ∀ x y z : α, gdist x z ≤ gdist x y + gdist y z) : 0 ≤ gdist x y := by
   have : 0 ≤ gdist x y + gdist x y :=
@@ -54,7 +51,7 @@ private theorem gdist_nonneg' {x y : α} (gdist : α → α → β)
   exact nonneg_add_self_iff.mp this
 
 @[ext]
-theorem GPseudoMetricSpace.ext {m m' : GPseudoMetricSpace α β}
+theorem GPseudoMetricSpace.ext [LinearOrderedAddCommMonoid β] {m m' : GPseudoMetricSpace α β}
     (h : m.toGDist = m'.toGDist) : m = m' := by
   cases' m with d _ _ _ B hB
   cases' m' with d' _ _ _ B' hB'
@@ -63,7 +60,8 @@ theorem GPseudoMetricSpace.ext {m m' : GPseudoMetricSpace α β}
   · ext : 2
     rw [← Filter.mem_sets, ← Filter.mem_sets, hB, hB']
 
-variable [GPseudoMetricSpace α β]
+section
+variable [LinearOrderedAddCommMonoid β] [GPseudoMetricSpace α β]
 
 @[simp]
 theorem gdist_self (x : α) : GDist.gdist x x = (0:β) :=
@@ -143,10 +141,10 @@ theorem swap_gdist : Function.swap GDist.gdist = (GDist.gdist:α → α → β) 
 
 theorem gdist_nonneg {x y : α} : 0 ≤ (GDist.gdist x y:β) :=
   gdist_nonneg' GDist.gdist gdist_self gdist_comm gdist_triangle
-
+end
 namespace GMetricSpace
-
--- instantiate pseudometric space as a topology
+section non_cancel
+variable [LinearOrderedAddCommMonoid β] [GPseudoMetricSpace α β]
 variable {x y z : α} {δ ε ε₁ ε₂ : β} {s : Set α}
 
 /-- `ball x ε` is the set of all points `y` with `dist y x < ε` -/
@@ -255,11 +253,17 @@ theorem sphere_subset_closedBall : sphere x ε ⊆ closedBall x ε := fun _ => l
 lemma sphere_subset_ball {r R : β} (h : r < R) : sphere x r ⊆ ball x R := fun _x hx ↦
   (mem_sphere.1 hx).trans_lt h
 
+end non_cancel
+section cancel
+variable [LinearOrderedCancelAddCommMonoid β] [GPseudoMetricSpace α β]
+variable {x y z : α} {δ ε ε₁ ε₂ : β} {s : Set α}
+
 theorem closedBall_disjoint_ball (h : δ + ε ≤ GDist.gdist x y) : Disjoint (closedBall x δ) (ball y ε) :=
   Set.disjoint_left.mpr fun _a ha1 ha2 =>
     (h.trans <| gdist_triangle_left _ _ _).not_lt <| add_lt_add_of_le_of_lt ha1 ha2
 
-theorem ball_disjoint_closedBall (h : δ + ε ≤ GDist.gdist x y) : Disjoint (ball x δ) (closedBall y ε) :=
+
+theorem ball_disjoint_closedBall (h : δ + ε ≤ GDist.gdist x y) : Disjoint (ball x δ) (closedBall (y:α) (ε :β)) :=
   (closedBall_disjoint_ball <| by rwa [add_comm, gdist_comm]).symm
 
 
