@@ -1,15 +1,10 @@
-import Mathlib.Data.Fintype.Basic
 import Mathlib.Data.FunLike.Basic
+import Mathlib.Data.Fintype.Basic
 import Mathlib.InformationTheory.Hamming
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 
 import Mathieu12Simple.GDelone.basic
 import Mathieu12Simple.GPseudoMetricSpace.GIsometry
-
--- a codeword is an element of Ω^|ι|, with hamming distance
-abbrev HammingCodeWord (ι:Type*) [Fintype ι] (Ω:Type*) [DecidableEq Ω] := Hamming (Function.const ι Ω)
-
-abbrev HammingCode (ι:Type*) [Fintype ι] (Ω:Type*) [DecidableEq Ω] := Set (HammingCodeWord ι Ω)
 
 section
 variable (β:Type*) [CompleteLattice β] [LinearOrderedAddCommMonoid β]
@@ -50,19 +45,32 @@ variable (K:Type*) [Field K]
 structure LinearCode where
   carrier : Set V
   toSubmodule:Submodule K V
-  submodule_carrier_eq_carrier : toSubmodule.carrier = carrier
+  submodule_carrier_eq_carrier : toSubmodule = carrier
   toGDeloneSet : GDeloneSet V β
-  gdeloneset_carrier_eq_carrier : toGDeloneSet.carrier = carrier
+  gdeloneset_carrier_eq_carrier : toGDeloneSet = carrier
 
 @[ext]
 theorem LinearCode.ext (lc₁:LinearCode K V β) (lc₂:LinearCode K V β) (h:lc₁.carrier = lc₂.carrier) : lc₁=lc₂:= by
   cases lc₁ ; cases lc₂ ; congr
-  . aesop
-  . ext x ; simp_all only
+  . rename_i submodule_carrier_eq_carrier toGDeloneSet
+      gdeloneset_carrier_eq_carrier carrier_1 toSubmodule_1 submodule_carrier_eq_carrier_1 toGDeloneSet_1
+      gdeloneset_carrier_eq_carrier_1
+    aesop_subst [submodule_carrier_eq_carrier_1, submodule_carrier_eq_carrier]
+    simp_all only [SetLike.coe_set_eq]
+    -- curiously, it didn't get the second one with aesop, but it did with the first.
+    -- it was fixed by simple substitution
+  . rename_i toGDeloneSet
+      gdeloneset_carrier_eq_carrier carrier_1 toSubmodule_1 submodule_carrier_eq_carrier_1 toGDeloneSet_1
+      gdeloneset_carrier_eq_carrier_1
+    aesop_subst [gdeloneset_carrier_eq_carrier_1, gdeloneset_carrier_eq_carrier]
+    simp_all only [SetLike.coe_set_eq]
 
 instance: SetLike (LinearCode K V β) V where
     coe := fun c => c.carrier
-    coe_injective' := fun φ₁ φ₂ hφ => by aesop -- don't worry about it
+    coe_injective' := fun φ₁ φ₂ hφ => by
+      simp_all only
+      unhygienic ext
+      simp_all only
 
 end
 section
@@ -105,22 +113,3 @@ structure LinearCodeEquiv
   toEquiv: V₁ ≃ V₂
   map_is_equiv : (toEquiv:V₁→V₂) = toFun
   map_code_surjective: ∀ y∈lc₂,∃ x ∈ lc₁, toFun x = y
-
-namespace Code
-variable {ι:Type*} [Fintype ι] {Ω:Type*} [DecidableEq Ω] (C:Code ι Ω)
-abbrev NonTrivialCode : Prop := GDeloneSet (C: Set (CodeWord ι Ω))
--- DeloneSet means: Half the shortest nontrivial distance is
-
--- minimal distance of a code (with at least two elements)
--- is the smallest hamming distance between separate words
-noncomputable def minimal_distance : ℝ := (C:Set (CodeWord ι Ω)).infsep
-
--- improve by not requiring Fintype Ω and changing ℝ to ENNReal?
-noncomputable def dimension [Fintype Ω] : ℝ := Real.log C.card / (Real.log ((@Finset.univ Ω).card))
-
-noncomputable def rate [Fintype Ω] : ℝ := dimension C / (@Finset.univ ι).card
-
--- theorem hamming_bound [Fintype Ω]: ∀ (c:Code ι Ω), rate c ≤ 1 - (Real.log (||)) / () := sorry
-
-
-end Code
