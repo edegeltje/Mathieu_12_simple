@@ -37,7 +37,7 @@ instance (c₁:GDeloneSet α₁ β) (c₂:GDeloneSet α₂ β):
 
 structure CodeEquiv (c₁:GDeloneSet α₁ β) (c₂:GDeloneSet α₂ β) extends CodeHom β c₁ c₂ where
   toEquiv: α₁≃α₂
-  map_is_equiv : (isEquiv:α₁→α₂) = toFun
+  map_is_equiv : (toEquiv:α₁→α₂) = toFun
   map_code_surjective: ∀ y∈c₂,∃ x ∈ c₁, toFun x = y
 end
 
@@ -50,15 +50,15 @@ variable (K:Type*) [Field K]
 structure LinearCode where
   carrier : Set V
   toSubmodule:Submodule K V
-  submodule_carrier_eq_carrier : toSubmodule = carrier
+  submodule_carrier_eq_carrier : toSubmodule.carrier = carrier
   toGDeloneSet : GDeloneSet V β
-  gdeloneset_carrier_eq_carrier : toGDeloneSet = carrier
+  gdeloneset_carrier_eq_carrier : toGDeloneSet.carrier = carrier
 
 @[ext]
 theorem LinearCode.ext (lc₁:LinearCode K V β) (lc₂:LinearCode K V β) (h:lc₁.carrier = lc₂.carrier) : lc₁=lc₂:= by
   cases lc₁ ; cases lc₂ ; congr
-  . aesop -- don't worry about it
   . aesop
+  . ext x ; simp_all only
 
 instance: SetLike (LinearCode K V β) V where
     coe := fun c => c.carrier
@@ -78,6 +78,8 @@ structure LinearCodeHom (lc₁:LinearCode K V₁ β) (lc₂:LinearCode K V₂ β
   codehom_map_eq_map : toCodeHom.toFun = toFun
   toLinearMap : V₁ →ₗ[K] V₂
   linear_map_eq_map : toLinearMap.toFun = toFun
+
+
 
 @[ext]
 theorem LinearCodeHom.ext {lc₁:LinearCode K V₁ β} {lc₂:LinearCode K V₂ β}
@@ -99,10 +101,10 @@ structure LinearCodeEquiv
   {β :Type*} [LinearOrderedAddCommMonoid β] [CompleteLattice β]
   {V₁ :Type*} [AddCommGroup V₁] [Module K V₁] [GMetricSpace V₁ β] (lc₁:LinearCode K V₁ β)
   {V₂ :Type*} [AddCommGroup V₂] [Module K V₂] [GMetricSpace V₂ β] (lc₂:LinearCode K V₂ β)
-  extends V₁ ≃ₗ[K] V₂ where
-  map_code : ∀ x ∈ lc₁, toFun x ∈ lc₂
-  isometry : GIsometry β toFun
-
+  extends LinearCodeHom lc₁ lc₂ where
+  toEquiv: V₁ ≃ V₂
+  map_is_equiv : (toEquiv:V₁→V₂) = toFun
+  map_code_surjective: ∀ y∈lc₂,∃ x ∈ lc₁, toFun x = y
 
 namespace Code
 variable {ι:Type*} [Fintype ι] {Ω:Type*} [DecidableEq Ω] (C:Code ι Ω)
